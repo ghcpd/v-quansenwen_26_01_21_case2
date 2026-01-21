@@ -9,6 +9,8 @@ export class Worker {
     this.concurrency = options.concurrency || 3;
     this.running = false;
     this.activeJobs = 0;
+    // Track job outcomes for inspection/testing/logging
+    this.jobResults = [];
   }
 
   /**
@@ -31,12 +33,24 @@ export class Worker {
    */
   executeJob(job) {
     this.activeJobs++;
-    
-    // Process the job without proper error handling
-    this.processJob(job).then(() => {
-      this.activeJobs--;
-    });
-    // Missing: .catch() handler for promise rejection
+
+    // Wrap in async flow with explicit error handling to avoid unhandled rejections
+    const p = (async () => {
+      try {
+        const result = await this.processJob(job);
+        this.jobResults.push({ job, status: 'fulfilled', value: result });
+        return result;
+      } catch (error) {
+        console.error(`Job failed: ${job.type} (${job.id})`, error);
+        this.jobResults.push({ job, status: 'rejected', reason: error });
+        // Do not rethrow here to prevent unhandled rejection; failure is recorded
+        return null;
+      } finally {
+        this.activeJobs--;
+      }
+    })();
+
+    return p;
   }
 
   /**

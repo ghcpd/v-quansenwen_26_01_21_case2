@@ -1,0 +1,121 @@
+User: You are a senior Node.js engineer responsible for production stability.
+
+You are given a small Node.js repository that simulates a background job runner.
+Running `npm start` executes the worker under strict unhandled-rejection behavior
+and the process exits due to an Unhandled Promise Rejection.
+
+Your task: FIX the root cause so the process no longer exits unexpectedly.
+
+IMPORTANT:
+- This is a FIXING task.
+- Keep changes minimal and targeted. Do NOT rewrite the whole project.
+- Do NOT add external dependencies.
+- Do NOT “fix” by disabling strict mode, removing the failing job, or ignoring errors globally.
+- Do NOT solve by adding a global `process.on('unhandledRejection', () => {})` that swallows errors.
+- The fix must correctly handle promise rejections at the source.
+
+============================================================
+Required Outcome
+============================================================
+
+After the fix:
+
+1) `npm start` must NOT crash the process due to unhandled rejections.
+2) Failing jobs must be handled in a defined way:
+   - captured and logged, and/or
+   - returned as an error result, and/or
+   - retried with a small backoff (optional)
+3) The worker must continue to process other jobs after a failure.
+4) `npm test` must pass.
+
+============================================================
+Engineering Constraints (strict)
+============================================================
+
+- Every async job execution path must be awaited or have a catch attached.
+- Do not convert errors into silent no-ops; surface them via logs or returned results.
+- Avoid busy loops (if you retry, add a small delay and a max attempts).
+
+============================================================
+Regression Tests (must add)
+============================================================
+
+Add at least one test that:
+- uses the failing job
+- runs the worker (or the core processing function) under strict behavior expectations
+- asserts that:
+  - the worker does not terminate the process
+  - the failure is recorded/returned/logged in a verifiable way
+  - the worker still processes succeeding jobs
+
+Use Node built-in test runner (`node:test`) and `assert`.
+
+============================================================
+Output Requirements
+============================================================
+
+- Provide the updated contents of all modified files.
+- Include new/updated tests.
+- Keep explanations minimal; code readability matters.
+
+
+GitHub Copilot: Read [](file:///c%3A/Users/v-quansenwen/work/bug-related/runtime-error-0121/Claude-Opus-4.5/package.json)
+
+Read [](file:///c%3A/Users/v-quansenwen/work/bug-related/runtime-error-0121/Claude-Opus-4.5/src/index.js#1-1), lines 1 to 50
+
+Read [](file:///c%3A/Users/v-quansenwen/work/bug-related/runtime-error-0121/Claude-Opus-4.5/src/jobs.js)
+
+Read [](file:///c%3A/Users/v-quansenwen/work/bug-related/runtime-error-0121/Claude-Opus-4.5/src/queue.js)
+
+Read [](file:///c%3A/Users/v-quansenwen/work/bug-related/runtime-error-0121/Claude-Opus-4.5/src/worker.js)
+
+Read [](file:///c%3A/Users/v-quansenwen/work/bug-related/runtime-error-0121/Claude-Opus-4.5/test/worker.test.js)
+
+I've identified the root cause. In worker.js, the `executeJob` method calls `this.processJob(job)` which returns a promise, but the `.catch()` handler is missing. When a job fails (like `job-4` with `recordId: 14`), the rejection is unhandled.
+
+Let me fix the worker and add the required regression tests: 
+
+Using "Multi-Replace String in Files"
+
+
+```
+
+```
+
+
+Using "Replace String in File"
+
+
+```
+
+```
+Now let me run the tests and then `npm start` to verify the fix: 
+
+Ran terminal command:  npm test
+
+Ran terminal command:  npm start
+
+The fix is complete. Here's a summary of the changes:
+
+## Fix Summary
+
+**Root Cause:** In worker.js, the `executeJob` method called `this.processJob(job)` but only had a `.then()` handler without a `.catch()` handler. When a job threw an error, the promise rejection was unhandled.
+
+**Solution:** Added proper error handling in the `executeJob` method:
+
+1. Added a `.catch()` handler to capture job failures
+2. Failures are logged with `console.error()`
+3. Added a `results` array to track all job outcomes (success/failure)
+4. Added `getResults()` method to retrieve job results
+
+**Files Modified:**
+- worker.js - Added `.catch()` handler and result tracking
+- worker.test.js - Added regression test for failing jobs
+
+**Test Coverage:** The new test verifies:
+- Worker doesn't crash when jobs fail
+- Failures are recorded with proper error messages
+- Worker continues processing subsequent jobs after failures
+- Both successful and failed jobs are tracked in results
+
+Made changes.

@@ -9,6 +9,7 @@ export class Worker {
     this.concurrency = options.concurrency || 3;
     this.running = false;
     this.activeJobs = 0;
+    this.results = [];
   }
 
   /**
@@ -32,11 +33,23 @@ export class Worker {
   executeJob(job) {
     this.activeJobs++;
     
-    // Process the job without proper error handling
-    this.processJob(job).then(() => {
-      this.activeJobs--;
-    });
-    // Missing: .catch() handler for promise rejection
+    this.processJob(job)
+      .then((result) => {
+        this.results.push({ jobId: job.id, status: 'success', result });
+        this.activeJobs--;
+      })
+      .catch((error) => {
+        console.error(`Job failed: ${job.type} (${job.id}) - ${error.message}`);
+        this.results.push({ jobId: job.id, status: 'failed', error: error.message });
+        this.activeJobs--;
+      });
+  }
+
+  /**
+   * Get results of all processed jobs
+   */
+  getResults() {
+    return this.results;
   }
 
   /**

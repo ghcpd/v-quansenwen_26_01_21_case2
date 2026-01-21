@@ -1,0 +1,59 @@
+You are a senior Node.js engineer responsible for production stability.
+
+You are given a small Node.js repository that simulates a background job runner.
+Running `npm start` executes the worker under strict unhandled-rejection behavior
+and the process exits due to an Unhandled Promise Rejection.
+
+Your task: FIX the root cause so the process no longer exits unexpectedly.
+
+IMPORTANT:
+- This is a FIXING task.
+- Keep changes minimal and targeted. Do NOT rewrite the whole project.
+- Do NOT add external dependencies.
+- Do NOT “fix” by disabling strict mode, removing the failing job, or ignoring errors globally.
+- Do NOT solve by adding a global `process.on('unhandledRejection', () => {})` that swallows errors.
+- The fix must correctly handle promise rejections at the source.
+
+============================================================
+Required Outcome
+============================================================
+
+After the fix:
+
+1) `npm start` must NOT crash the process due to unhandled rejections.
+2) Failing jobs must be handled in a defined way:
+   - captured and logged, and/or
+   - returned as an error result, and/or
+   - retried with a small backoff (optional)
+3) The worker must continue to process other jobs after a failure.
+4) `npm test` must pass.
+
+============================================================
+Engineering Constraints (strict)
+============================================================
+
+- Every async job execution path must be awaited or have a catch attached.
+- Do not convert errors into silent no-ops; surface them via logs or returned results.
+- Avoid busy loops (if you retry, add a small delay and a max attempts).
+
+============================================================
+Regression Tests (must add)
+============================================================
+
+Add at least one test that:
+- uses the failing job
+- runs the worker (or the core processing function) under strict behavior expectations
+- asserts that:
+  - the worker does not terminate the process
+  - the failure is recorded/returned/logged in a verifiable way
+  - the worker still processes succeeding jobs
+
+Use Node built-in test runner (`node:test`) and `assert`.
+
+============================================================
+Output Requirements
+============================================================
+
+- Provide the updated contents of all modified files.
+- Include new/updated tests.
+- Keep explanations minimal; code readability matters.

@@ -59,3 +59,39 @@ test('Worker processes successful data jobs', async () => {
 
   assert.strictEqual(queue.isEmpty(), true, 'Data jobs should be processed');
 });
+
+test('Worker handles failing job without exiting and continues processing', async () => {
+  const queue = new JobQueue();
+
+  queue.enqueue({
+    id: 'fail-1',
+    type: 'dataProcess',
+    payload: { recordId: 14 }
+  });
+
+  queue.enqueue({
+    id: 'ok-email',
+    type: 'email',
+    payload: { recipient: 'ok@example.com' }
+  });
+
+  queue.enqueue({
+    id: 'ok-data',
+    type: 'dataProcess',
+    payload: { recordId: 15 }
+  });
+
+  const worker = new Worker(queue, { concurrency: 2 });
+  await worker.start();
+
+  assert.strictEqual(queue.isEmpty(), true, 'Queue should drain even when a job fails');
+
+  const statusMap = worker.results.reduce((acc, entry) => {
+    acc[entry.jobId] = entry.status;
+    return acc;
+  }, {});
+
+  assert.strictEqual(statusMap['fail-1'], 'rejected', 'Failing job should be recorded as rejected');
+  assert.strictEqual(statusMap['ok-email'], 'fulfilled', 'Subsequent jobs should succeed');
+  assert.strictEqual(statusMap['ok-data'], 'fulfilled', 'Worker should keep processing after a failure');
+});

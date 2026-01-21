@@ -32,11 +32,15 @@ export class Worker {
   executeJob(job) {
     this.activeJobs++;
     
-    // Process the job without proper error handling
-    this.processJob(job).then(() => {
-      this.activeJobs--;
-    });
-    // Missing: .catch() handler for promise rejection
+    // Process the job with proper error handling
+    this.processJob(job)
+      .then(() => {
+        this.activeJobs--;
+      })
+      .catch((error) => {
+        this.activeJobs--;
+        console.error(`Job ${job.id} failed:`, error.message);
+      });
   }
 
   /**
